@@ -6,7 +6,7 @@
     .find(e => e.innerText && e.innerText.replace(/\s+/g,'').includes('노출됩니다'));
 
   if (!anchor) {
-    alert('기준 문구를 찾지 못했습니다');
+    alert('쇼핑커넥트 상품찾기 검색결과에서 작동합니다');
     return;
   }
 
@@ -82,3 +82,4 @@
 
   container.insertBefore(panel, anchor);
 })();
+
