@@ -6,7 +6,7 @@
     .find(e => e.innerText && e.innerText.replace(/\s+/g,'').includes('노출됩니다'));
 
   if (!anchor) {
-    alert('쇼핑커넥트 상품찾기 검색결과에서 작동합니다');
+    alert('쇼핑커넥트 상품찾기 검색결과에서 작동합니다 까궁');
     return;
   }
 
@@ -82,4 +82,5 @@
 
   container.insertBefore(panel, anchor);
 })();
+
 
