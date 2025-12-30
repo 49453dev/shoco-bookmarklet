@@ -2,7 +2,7 @@
     async function collectAllData() {
         const loader = document.createElement('div');
         loader.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:25px;background:rgba(0,0,0,0.85);color:#fff;z-index:9999;border-radius:15px;text-align:center;font-size:16px;line-height:1.5;';
-        loader.innerHTML = '데이터 수집 중...(몇초 걸려요~)';
+        loader.innerHTML = '데이터 수집 중...(몇초 걸려요~ 까꿍~!)';
         document.body.appendChild(loader);
 
         const dateElement = document.querySelector('span.u_ni_range.cursor_pointer');
