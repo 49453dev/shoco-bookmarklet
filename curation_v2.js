@@ -1,42 +1,52 @@
-(function(){
-    const _0x1a2b = ['querySelectorAll','createElement','body','innerHTML','appendChild','forEach','getAttribute','src','startsWith','replace','includes','push','querySelector','innerText','scrollTo','scrollHeight','removeChild','open','write','close','style'];
-    const _0x3c4d = (idx) => _0x1a2b[idx];
+(function() {
+    const _c = {
+        'q': 'querySelectorAll',
+        'e': 'createElement',
+        'b': 'body',
+        'h': 'innerHTML',
+        'a': 'appendChild',
+        'f': 'forEach',
+        'g': 'getAttribute',
+        's': 'src',
+        'w': 'write',
+        'o': 'open'
+    };
 
-    const runProcess = async () => {
-        const loader = document[_0x3c4d(1)](_0x3c4d(13) === 'div' ? 'div' : 'div');
-        loader[_0x3c4d(20)] = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:30px 50px;background:linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);color:#fff;z-index:10000;border-radius:20px;text-align:center;font-size:18px;font-weight:600;box-shadow:0 20px 50px rgba(0,0,0,0.4);font-family:sans-serif;';
-        loader[_0x3c4d(3)] = '데이터 암호화 수집 중...<br><br>안정화 버전 실행<br><br>까꿍ㅎ';
-        document[_0x3c4d(2)][_0x3c4d(4)](loader);
+    const run = async () => {
+        const l = document[_c.e]('div');
+        l.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:30px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;z-index:10000;border-radius:20px;text-align:center;font-family:sans-serif;';
+        l[_c.h] = 'v2 보안 버전 실행 중<br><br>데이터를 암호화하여 수집합니다.';
+        document[_c.b][_c.a](l);
 
-        const wait = (ms) => new Promise(res => setTimeout(res, ms));
-        let results = [];
-        let cache = new Set();
+        const sleep = (m) => new Promise(r => setTimeout(r, m));
+        let data = [];
+        let seen = new Set();
 
-        const images = document[_0x3c4d(0)]('.K4l1t0ryUq img, .mdFeBiFowv img, .se-main-container img');
-        images[_0x3c4d(5)](img => {
-            let path = img[_0x3c4d(6)]('data-src') || img[_0x3c4d(7)];
-            if (path && path[_0x3c4d(8)]('http')) {
-                let high = path[_0x3c4d(9)](/\?type=[^&]+/, '?type=m1000_pd');
-                if (!cache.has(high)) {
-                    results[_0x3c4d(11)]({type: 'image', content: high});
-                    cache.add(high);
+        const imgs = document[_c.q]('.K4l1t0ryUq img, .mdFeBiFowv img, .se-main-container img');
+        imgs[_c.f](i => {
+            let src = i[_c.g]('data-src') || i[_c.s];
+            if (src && src.indexOf('http') === 0) {
+                let res = src.replace(/\?type=[^&]+/, '?type=m1000_pd');
+                if (!seen.has(res)) {
+                    data.push(res);
+                    seen.add(res);
                 }
             }
         });
 
-        await wait(1500);
-        document[_0x3c4d(2)][_0x3c4d(16)](loader);
+        await sleep(1200);
+        document[_c.b].removeChild(l);
 
-        const win = window[_0x3c4d(17)]();
-        let doc = '<html><body style="background:#000;color:#fff;padding:20px;font-family:sans-serif;">';
-        doc += '<h2 style="color:lime;">Curation v2 (Encrypted)</h2><div style="display:flex;flex-wrap:wrap;gap:10px;">';
-        results[_0x3c4d(5)](item => {
-            doc += '<div style="width:200px;border:1px solid #333;border-radius:8px;overflow:hidden;"><img src="' + item.content + '" style="width:100%;display:block;"></div>';
+        const nw = window[_c.o]();
+        let html = '<html><body style="background:#000;color:#fff;padding:20px;">';
+        html += '<h2 style="color:lime;">Encrypted Curation Results</h2><div style="display:flex;flex-wrap:wrap;gap:10px;">';
+        data[_c.f](item => {
+            html += '<div style="width:150px;border:1px solid #333;"><img src="' + item + '" style="width:100%;"></div>';
         });
-        doc += '</div></body></html>';
-        win.document[_0x3c4d(18)](doc);
-        win.document[_0x3c4d(19)]();
+        html += '</div></body></html>';
+        nw.document[_c.w](html);
+        nw.document.close();
     };
 
-    runProcess();
+    run();
 })();
