@@ -1,8 +1,8 @@
 (function() {
     const runProcess = async () => {
         const loader = document.createElement('div');
-        loader.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:30px 50px;background:linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);color:#fff;z-index:10000;border-radius:20px;text-align:center;font-size:18px;font-weight:600;line-height:1.6;box-shadow: 0 20px 50px rgba(0,0,0,0.4);font-family:sans-serif;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);';
-        loader.innerHTML = '데이터 수집 중...<br><br>잠시만 기다려주세요.<br><br>49453';
+        loader.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:30px 50px;background:linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);color:#fff;z-index:10000;border-radius:20px;text-align:center;font-size:18px;font-weight:600;line-height:1.6;box-shadow:0 20px 50px rgba(0,0,0,0.4);font-family:sans-serif;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);';
+        loader.innerHTML = '데이터 수집 중...<br><br>몇초 걸려요~<br><br>까꿍ㅎ';
         document.body.appendChild(loader);
 
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -122,4 +122,26 @@
         html += '<div class="btn-container"><button class="base-btn deselect-btn" onclick="deselectAll()">전체해제</button><button class="base-btn export-btn" onclick="exportSelected()">선택 모아보기</button></div>';
         html += '<div class="masonry">';
 
-        finalData.forEach
+        finalData.forEach((item, idx) => {
+            const targetUrl = (item.type !== 'text') ? item.content : '';
+            html += `<div class="item-wrapper" onclick="toggleItem(this)" ondblclick="if('${targetUrl}') window.open('${targetUrl}', '_blank')">`;
+            html += `<input type="checkbox" class="chk-box" onclick="event.stopPropagation(); toggleItem(this.parentElement)">`;
+            if (item.label === 'THUMB') html += `<div class="thumb-tag">대표</div>`;
+            if (item.type === 'image') html += `<img src="${item.content}">`;
+            else if (item.type === 'video') html += `<video src="${item.content}" controls></video>`;
+            else html += `<div class="text-content">${item.content}</div>`;
+            html += '</div>';
+        });
+
+        html += '</div><script>';
+        html += 'function toggleItem(el) { const chk = el.querySelector(".chk-box"); if (event.target.type !== "checkbox") { chk.checked = !chk.checked; } el.classList.toggle("selected", chk.checked); }';
+        html += 'function deselectAll() { document.querySelectorAll(".item-wrapper").forEach(el => { el.classList.remove("selected"); el.querySelector(".chk-box").checked = false; }); }';
+        html += 'function exportSelected() { const selected = document.querySelectorAll(".item-wrapper.selected"); if (selected.length === 0) { alert("항목을 선택해주세요."); return; } const win = window.open(); let out = "<html><head><style>body{background:#000;margin:0;padding:10px;} .masonry{column-width:200px;column-gap:6px;} .box{break-inside:avoid;margin-bottom:6px;background:#111;border-radius:4px;overflow:hidden;} img,video{width:100%;} .txt{color:#ccc;padding:12px;font-size:12px;line-height:1.6;white-space:pre-wrap;}</style></head><body><div class=\'masonry\'>"; selected.forEach(el => { const img = el.querySelector("img"); const vid = el.querySelector("video"); const txt = el.querySelector(".text-content"); if(img) out += "<div class=\'box\'><img src=\'"+img.src+"\'></div>"; else if(vid) out += "<div class=\'box\'><video src=\'"+vid.src+"\' controls></video></div>"; else if(txt) out += "<div class=\'box\'><div class=\'txt\'>"+txt.innerText+"</div></div>"; }); out += "</div></body></html>"; win.document.write(out); win.document.close(); }';
+        html += '<\/script></body></html>';
+        
+        newTab.document.write(html);
+        newTab.document.close();
+    };
+
+    runProcess();
+})();
