@@ -104,14 +104,14 @@
       async function render(selectedMonthStr) {
         container.innerHTML = '데이터를 분석 중입니다...';
         const [y, m] = selectedMonthStr.split('-').map(Number);
-        const monthsToRender = [
+        const targetMonths = [
           new Date(y, m - 3, 1),
           new Date(y, m - 2, 1),
           new Date(y, m - 1, 1)
         ];
 
         let fullHtml = '';
-        for (const targetDate of monthsToRender) {
+        for (const targetDate of targetMonths) {
           const ty = targetDate.getFullYear();
           const tm = targetDate.getMonth() + 1;
           const lastDay = new Date(ty, tm, 0).getDate();
