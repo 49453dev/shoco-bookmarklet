@@ -1,15 +1,12 @@
 (async function() {
-  /* 1. 스크린샷 기반 최적화된 ID 추출 로직 */
   let pubId = '';
   try {
-    // 가장 확실한 방법: 네트워크 리소스 기록(image_a5a3ed.png 근거)
     const resources = performance.getEntriesByType("resource");
     for (const res of resources) {
       const match = res.name.match(/publisherId=(\d+)/);
       if (match) { pubId = match[1]; break; }
     }
     
-    // 백업 방법: 페이지 내 모든 링크 및 텍스트 검사
     if (!pubId) {
       const bodyText = document.documentElement.innerHTML;
       const textMatch = bodyText.match(/publisherId=(\d+)/) || bodyText.match(/"publisherId"\s*:\s*"(\d+)"/);
@@ -17,7 +14,6 @@
     }
   } catch(e) { console.error("ID 추출 중 오류:", e); }
 
-  /* 식별 번호 최종 확인 */
   if (!pubId) {
     alert('사용자 식별 번호를 찾을 수 없습니다. 페이지 새로고침(F5) 후 1~2초 뒤에 다시 실행해 주세요.');
     return;
