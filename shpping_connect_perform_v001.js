@@ -12,14 +12,21 @@
   for(let i=0; i<36; i++) {
     const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     const val = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    const label = `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
-    monthOptions += `<option value="${val}">${label}</option>`;
+    const label = d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월';
+    monthOptions += '<option value="' + val + '">' + label + '</option>';
   }
 
   const newWin = window.open('', '_blank');
   
   const css = `
-    body{font-family:"Pretendard", "Segoe UI", Roboto, sans-serif;background:#0a0a0a;color:#fff;padding:40px;margin:0}
+    body{font-family:"Pretendard", "Segoe UI", Roboto, sans-serif;background:#0a0a0a;color:#fff;padding:40px;margin:0;position:relative}
+    .easter-egg {
+      position: fixed; top: 15px; left: 15px; font-size: 11px; color: #444; 
+      text-decoration: none; transition: 0.3s; z-index: 9999; font-weight: 300;
+    }
+    .easter-egg:hover {
+      color: #fff; text-shadow: 0 0 8px #fff, 0 0 15px #00d9ff; opacity: 1;
+    }
     .header-area{display:flex; flex-direction:column; align-items:center; margin-bottom:40px;}
     .nav-box{margin-bottom:20px; display:flex; gap:10px; align-items:center;}
     select{background:#1a1a1a; color:#fff; border:1px solid #333; padding:10px 15px; border-radius:8px; font-size:15px; outline:none; cursor:pointer; min-width: 180px; text-align: center;}
@@ -41,6 +48,7 @@
   `;
 
   let html = `<html><head><style>${css}</style></head><body>
+    <a href="https://www.threads.net/@49453" target="_blank" class="easter-egg">made by 49453@thread</a>
     <div class="header-area">
       <h1><span>Shopping Connect</span> Performance</h1>
       <div class="nav-box">
@@ -108,7 +116,7 @@
 
       btn.addEventListener("click", () => render(select.value));
       render(select.value);
-    <\/script>
+    </script>
   </body></html>`;
 
   newWin.document.write(html);
