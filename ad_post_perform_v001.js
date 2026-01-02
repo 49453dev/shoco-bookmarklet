@@ -1,18 +1,24 @@
 (async function() {
-  let pubId = '804460'; 
+  let pubId = '';
   try {
     const scripts = Array.from(document.getElementsByTagName('script'));
     for(let s of scripts) {
+      /* 소스 코드 내 "publisherId": "숫자" 형태 추출 */
       const match = s.textContent.match(/"publisherId":\s*"?(\d+)"?/) || s.textContent.match(/publisherId=(\d+)/);
       if(match) { pubId = match[1]; break; }
     }
   } catch(e) {}
 
+  if (!pubId) {
+    alert('사용자 식별 번호를 추출할 수 없습니다. 애드포스트 메인 페이지에서 실행 중인지 확인해 주세요.');
+    return;
+  }
+
   const brandColor = '#63A1FF';
   const today = new Date();
   
   let monthOptions = '';
-  for(let i=0; i<24; i++) {
+  for(let i=0; i<36; i++) {
     const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     const val = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     const label = d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월';
