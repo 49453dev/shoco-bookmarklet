@@ -1,16 +1,31 @@
 (async function() {
+  /* 1. 네트워크 호출 기록에서 publisherId 자동 추출 */
   let pubId = '';
   try {
-    const scripts = Array.from(document.getElementsByTagName('script'));
-    for(let s of scripts) {
-      /* 소스 코드 내 "publisherId": "숫자" 형태 추출 */
-      const match = s.textContent.match(/"publisherId":\s*"?(\d+)"?/) || s.textContent.match(/publisherId=(\d+)/);
-      if(match) { pubId = match[1]; break; }
+    const resources = performance.getEntriesByType("resource");
+    for (const res of resources) {
+      const url = res.name;
+      const match = url.match(/publisherId=(\d+)/);
+      if (match) {
+        pubId = match[1];
+        break;
+      }
     }
-  } catch(e) {}
+  } catch (e) { console.error("ID 추출 실패:", e); }
+
+  /* 추출 실패 시 재시도: 페이지 내 링크 검색 */
+  if (!pubId) {
+    try {
+      const links = Array.from(document.querySelectorAll('a[href*="publisherId="]'));
+      for (const a of links) {
+        const match = a.href.match(/publisherId=(\d+)/);
+        if (match) { pubId = match[1]; break; }
+      }
+    } catch (e) {}
+  }
 
   if (!pubId) {
-    alert('사용자 식별 번호를 추출할 수 없습니다. 애드포스트 메인 페이지에서 실행 중인지 확인해 주세요.');
+    alert('사용자 식별 번호를 찾을 수 없습니다. 페이지를 새로고침한 후 다시 실행해 주세요.');
     return;
   }
 
