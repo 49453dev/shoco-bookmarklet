@@ -14,7 +14,7 @@ javascript:(function(){
     async function start(){
         const l=document.createElement('div');
         l.style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px;background:rgba(0,0,0,0.9);color:#fff;z-index:9999;border-radius:10px;text-align:center;font-size:14px;';
-        l.innerHTML='데이터 수집 중 (Ultra Fast)...';
+        l.innerHTML='데이터 수집 중...';
         document.body.appendChild(l);
 
         async function sS(idx){
