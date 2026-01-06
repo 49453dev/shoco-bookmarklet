@@ -40,7 +40,7 @@ javascript:(function(){
         await new Promise(r=>setTimeout(r,300));
         const d2=await sS(1);
         const dE=document.querySelector('span.u_ni_range.cursor_pointer'),dt=dE?dE.innerText.trim():'';
-        const EE=`<div class="ee"><a href="https://www.threads.net/@49453" target="_blank">made by 49453</a></div>`;
+        const EE=`<div class="ee"><a href="https://www.threads.net/@49453_" target="_blank">made by 49453</a></div>`;
 
         function gen(boxes){
             let sC=new Set(),html='';
