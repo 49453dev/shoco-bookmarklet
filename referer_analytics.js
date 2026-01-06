@@ -31,7 +31,7 @@
         } catch (e) { return "LINK"; }
     };
 
-    const reportHtml = '<html><head><meta charset="UTF-8"><style>' + CSS + '</style></head><body><div id="loading"></div><h1>REFERER ANALYTICS</h1><div class="ee"><a href="https://www.threads.com/@49453_" target="_blank">made by 49453</a></div><div class="date-nav"><button class="nav-btn" id="prevDay">◀</button><button class="today-btn" id="goToday">TODAY</button><input type="date" id="datePicker" value="' + todayStr + '"><button class="nav-btn" id="nextDay">▶</button></div><div class="main-layout"><div class="side-panel"><div class="panel-title">Top 100 Posts (CV)</div><div id="post-rank-list"></div></div><div class="content-panel"><div id="stats-area"></div><div id="btn-area" class="btn-container"></div><div id="detail-area"></div></div></div></body></html>';
+    const reportHtml = '<html><head><meta charset="UTF-8"><style>' + CSS + '</style></head><body><div id="loading"></div><h1>Blog ANALYTICS</h1><div class="ee"><a href="https://www.threads.com/@49453_" target="_blank">made by 49453</a></div><div class="date-nav"><button class="nav-btn" id="prevDay">◀</button><button class="today-btn" id="goToday">TODAY</button><input type="date" id="datePicker" value="' + todayStr + '"><button class="nav-btn" id="nextDay">▶</button></div><div class="main-layout"><div class="side-panel"><div class="panel-title">Top 100 Posts (CV)</div><div id="post-rank-list"></div></div><div class="content-panel"><div id="stats-area"></div><div id="btn-area" class="btn-container"></div><div id="detail-area"></div></div></div></body></html>';
 
     async function startApp() {
         try {
