@@ -1,114 +1,98 @@
-/*
-[수정된 통합 코드: 깃허브 업로드용]
-- 기능: API 데이터 매칭 + 상품 카드 내 정보 표시 + 상단 정렬 버튼 생성
-*/
-
+/* 깃허브 저장용 수정 코드 (shopping_cont_sorter.js) */
 (async () => {
-  // 1. 검색어 추출
   const qs = new URLSearchParams(location.search);
   const query = qs.get("query");
-  if (!query) {
-    alert("검색어를 찾지 못했습니다. 검색 결과 페이지에서 실행해주세요.");
-    return;
-  }
+  if (!query) return;
 
-  // 2. 기준 위치(Anchor) 찾기 및 패널 생성 공간 확보
-  const anchor = [...document.querySelectorAll('span')]
-    .find(e => e.innerText && e.innerText.replace(/\s+/g, '').includes('노출됩니다'));
-  
-  if (!anchor) {
-    console.log("정렬 버튼을 배치할 기준 위치를 찾지 못해 상단에 고정합니다.");
-  }
-
-  // 3. 브랜드커넥트 API 데이터 호출
+  // 1. 브랜드커넥트 API 데이터 호출
   const api = "https://gw-brandconnect.naver.com/affiliate/query/affiliate-products/search-by-query?query=" + encodeURIComponent(query) + "&limit=100";
   
   try {
     const res = await fetch(api, { credentials: "include" });
     const json = await res.json();
     const items = (json && json.data) ? json.data : [];
-    
-    if (!items.length) {
-      alert("매칭할 상품 데이터가 없습니다.");
-      return;
-    }
+    if (!items.length) return;
 
-    // 4. 상품 카드 매칭 및 데이터 주입
+    // 2. 기준 위치(anchor) 찾기
+    const anchor = [...document.querySelectorAll('span')]
+      .find(e => e.innerText && e.innerText.replace(/\s+/g,'').includes('노출됩니다'));
+    
+    if (!anchor) return;
+
+    const container = anchor.parentElement;
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    document.getElementById('bm-sort-panel')?.remove();
+
+    // 3. 카드 수집 및 데이터 매칭
     const cards = [];
     document.querySelectorAll("li").forEach(card => {
       const text = card.innerText || "";
       const item = items.find(i => text.indexOf(i.productName) > -1);
       
       if (item) {
-        // 정렬을 위한 데이터 속성 부여
+        // 정렬을 위한 데이터 저장
         card.dataset.commission = item.commissionRate || 0;
         card.dataset.price = item.salePrice || 0;
-        card.dataset.name = item.productName;
+        card.dataset.discount = item.discountRate || 0;
         cards.push(card);
 
-        // UI 표시 (중복 생성 방지)
-        if (!card.querySelector(".__added_info")) {
-          const infoBox = document.createElement("div");
-          infoBox.className = "__added_info";
-          infoBox.style.cssText = "margin:6px 0;padding:4px;font-size:11px;background:#f9f9f9;border-radius:4px;border:1px solid #eee;";
+        // 링크가 없을 때만 삽입 (중복 방지)
+        if (!card.querySelector(".__product_url")) {
+          const a = document.createElement("a");
+          a.className = "__product_url";
+          a.href = item.productUrl;
+          a.target = "_blank";
+          a.style.cssText = "display:block;margin:4px 0;color:#0a7;font-size:11px;text-decoration:none;word-break:break-all;";
+          a.innerText = "🔗 상품링크: " + item.productUrl;
           
-          infoBox.innerHTML = `
-            <div style="color:#ff7a00;font-weight:bold;">수수료: ${item.commissionRate}%</div>
-            <a href="${item.productUrl}" target="_blank" style="color:#0a7;text-decoration:none;word-break:break-all;">[상품링크 이동]</a>
-          `;
-          
-          const buttons = card.querySelectorAll("button, a");
-          if (buttons.length > 0) {
-            buttons[buttons.length - 1].parentNode.insertBefore(infoBox, buttons[buttons.length - 1]);
+          const btns = card.querySelectorAll("button, a");
+          if (btns.length > 0) {
+            btns[btns.length - 1].parentNode.insertBefore(a, btns[btns.length - 1]);
           } else {
-            card.appendChild(infoBox);
+            card.appendChild(a);
           }
         }
       }
     });
 
-    // 5. 정렬 버튼 패널 생성
-    document.getElementById('bm-sort-panel')?.remove();
+    // 4. 정렬 버튼 생성 로직
     const panel = document.createElement('div');
     panel.id = 'bm-sort-panel';
-    panel.style.cssText = 'display:flex;gap:8px;padding:10px;background:#fff;border-bottom:2px solid #ff7a00;margin-bottom:10px;';
+    panel.style.cssText = 'display:flex;gap:6px;margin-right:12px';
 
-    const sortCards = (type, btn) => {
-      const isDesc = btn.dataset.dir !== 'asc';
-      btn.dataset.dir = isDesc ? 'asc' : 'desc';
-      btn.innerText = (type === 'comm' ? '수수료 ' : '가격 ') + (isDesc ? '↑' : '↓');
-      
-      const sorted = [...cards].sort((a, b) => {
-        const valA = parseFloat(type === 'comm' ? a.dataset.commission : a.dataset.price);
-        const valB = parseFloat(type === 'comm' ? b.dataset.commission : b.dataset.price);
-        return isDesc ? valB - valA : valA - valB;
-      });
+    const makeBtn = (label, key) => {
+      const b = document.createElement('button');
+      b.dataset.dir = 'desc';
+      b.innerText = label + '↓';
+      b.style.cssText = 'padding:4px 8px;border:0;border-radius:4px;background:#ff7a00;color:#fff;font-size:12px;cursor:pointer;white-space:nowrap';
 
-      const container = cards[0].parentElement;
-      sorted.forEach(el => container.appendChild(el));
+      b.onclick = (e) => {
+        e.preventDefault();
+        const isDesc = b.dataset.dir === 'desc';
+        b.dataset.dir = isDesc ? 'asc' : 'desc';
+        b.innerText = label + (isDesc ? '↑' : '↓');
+        
+        const sorted = [...cards].sort((a, c) => {
+          const valA = parseFloat(a.dataset[key]);
+          const valC = parseFloat(c.dataset[key]);
+          return isDesc ? valC - valA : valA - valC;
+        });
+
+        const parent = cards[0].parentElement;
+        sorted.forEach(el => parent.appendChild(el));
+      };
+      return b;
     };
 
-    const commBtn = document.createElement('button');
-    commBtn.innerText = '수수료순';
-    commBtn.style.cssText = 'padding:6px 12px;border:0;border-radius:4px;background:#ff7a00;color:#fff;cursor:pointer;';
-    commBtn.onclick = () => sortCards('comm', commBtn);
+    // 버튼 3개 추가 (수수료, 가격, 할인율)
+    panel.appendChild(makeBtn('수수료', 'commission'));
+    panel.appendChild(makeBtn('가격', 'price'));
+    panel.appendChild(makeBtn('할인율', 'discount'));
 
-    const priceBtn = document.createElement('button');
-    priceBtn.innerText = '가격순';
-    priceBtn.style.cssText = 'padding:6px 12px;border:0;border-radius:4px;background:#333;color:#fff;cursor:pointer;';
-    priceBtn.onclick = () => sortCards('price', priceBtn);
-
-    panel.appendChild(commBtn);
-    panel.appendChild(priceBtn);
-
-    if (anchor) {
-      anchor.parentElement.insertBefore(panel, anchor);
-    } else {
-      document.body.prepend(panel);
-    }
+    container.insertBefore(panel, anchor);
 
   } catch (e) {
-    console.error("데이터 로드 중 오류 발생:", e);
-    alert("데이터를 가져오는 중 오류가 발생했습니다.");
+    console.error("오류 발생:", e);
   }
 })();
