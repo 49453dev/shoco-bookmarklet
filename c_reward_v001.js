@@ -2,7 +2,6 @@
     const baseUrl = "https://creator-advisor.naver.com/naver_blog/";
     const currentUrl = location.href;
 
-    /* 1. 아이디 자동 감지 및 리다이렉트 */
     if (currentUrl === baseUrl || currentUrl === baseUrl.slice(0, -1)) {
         location.href = baseUrl;
         return;
@@ -17,7 +16,6 @@
         return;
     }
 
-    /* 2. 유틸리티 및 데이터 관리 */
     const getDt = (ref, offset) => {
         const d = new Date(ref);
         d.setDate(d.getDate() - offset);
@@ -37,13 +35,11 @@
         return;
     }
 
-    /* 3. 디자인 (CSS) */
     const CSS = `body{font-family:"Pretendard",sans-serif;background:#0f1114;color:#e0e0e0;margin:0;overflow-y:hidden;user-select:none}#top-ctrl{position:sticky;top:0;z-index:100;background:#1a1d23;padding:15px;border-bottom:1px solid #333;display:flex;justify-content:center;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5)}.nav-btn{background:#00ff95;color:#0f1114;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:700;font-size:15px}.stat-btn{background:#333;color:#00ff95;border:1px solid #00ff95}.mask-btn{background:#444;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:700;font-size:11px;margin-left:5px}input#day-count{background:#0f1114;color:#00ff95;border:1px solid #444;padding:8px;width:55px;text-align:center;border-radius:6px;font-weight:700;font-size:16px}#base-date-disp{font-size:17px;font-weight:300;color:#fff;min-width:130px;text-align:center}.main-wrapper{display:flex;flex-direction:row;justify-content:flex-start;align-items:flex-start;gap:20px;padding:30px;overflow-x:auto;height:calc(100vh - 85px);cursor:grab;scroll-behavior:auto}.main-wrapper:active{cursor:grabbing}.ee-link{color:#444;text-decoration:none;font-size:11px;margin-left:10px;transition:0.3s}.ee-link:hover{color:#ff007b;text-shadow:0 0 8px #ff007b}.pop-ee{margin-top:12px;display:block;font-size:10px;color:rgba(0,0,0,0.3);text-decoration:none;transition:0.3s}.pop-ee:hover{color:#ff007b}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#333;border-radius:10px;border:2px solid #0f1114}::-webkit-scrollbar-track{background:#0f1114}.day-section{background:#1a1d23;border:1px solid #2a2d33;border-radius:20px;min-width:450px;max-width:500px;flex-shrink:0;height:100%;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.6);transition:all 0.3s ease;border:1px solid rgba(0,255,149,0.05)}.day-section:hover{border-color:rgba(0,255,149,0.3);box-shadow:0 15px 50px rgba(0,255,149,0.1)}.day-header{padding:20px;text-align:center;border-bottom:1px solid #333;flex-shrink:0}.total-rev{font-size:26px;color:#00ff95;margin:8px 0;font-weight:300}.table-wrap{padding:5px 10px;overflow-y:auto;flex-grow:1}table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}th,td{padding:10px 5px;text-align:left;border-bottom:1px solid #262a31;vertical-align:middle}th{color:#00ff95;background:#252930;position:sticky;top:0;z-index:10;font-weight:400}.rk{width:25px;color:#888;text-align:center}.ttl{font-weight:300;line-height:1.4;transition:all 0.2s ease;position:relative}.ttl a{color:#e0e0e0;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:all 0.2s ease}.ttl-glow a{color:#00ff95 !important;text-shadow:0 0 10px rgba(0,255,149,0.8);font-weight:700 !important}.row-highlight{background:rgba(0,255,149,0.08)}.is-masked .ttl a,.is-masked .pop-ttl{filter:blur(6px);pointer-events:none}.p-date{font-size:10px;color:#666;margin-top:4px;display:flex;align-items:center;gap:8px}.mini-stat-btn{background:#333;color:#00ff95;border:1px solid #00ff95;padding:2px 6px;border-radius:4px;font-size:9px;cursor:pointer;position:relative;z-index:200}.mini-stat-btn:hover{background:#00ff95;color:#0f1114}.st-col{color:#777;font-size:11px;white-space:nowrap;width:65px;text-align:right}.rev-col{color:#00ff95;font-weight:500;text-align:right;width:70px}#post-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#00ff95;color:#0f1114;padding:20px 30px;border-radius:30px;font-size:13px;font-weight:700;display:none;z-index:10000;box-shadow:0 0 50px rgba(0,255,149,0.5);min-width:320px;text-align:center}.pop-ttl{font-size:15px;margin-bottom:8px;line-height:1.4;word-break:keep-all;display:block}.pop-stats{display:flex;gap:15px;justify-content:center;margin-top:15px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.1)}#loading-status{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#00ff95;color:#0f1114;padding:15px 35px;border-radius:35px;font-size:13px;font-weight:700;display:none;z-index:10000;box-shadow:0 0 50px rgba(0,255,149,0.5)}.pop-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:none;z-index:9999}`;
 
     win.document.write(`<html><head><title>Dashboard</title><style>${CSS}</style></head><body><div id="top-ctrl"><button class="nav-btn" id="pD">◀</button><div id="base-date-disp"></div><button class="nav-btn" id="nD">▶</button><span style="margin-left:10px;font-size:13px;color:#888">조회:</span><input type="number" id="day-count" value="30" min="1" max="90"><button class="nav-btn" id="apply">적용</button><button class="nav-btn stat-btn" id="openStat">컨텐츠별 통계</button><button class="mask-btn" id="toggleMask">MASK OFF</button><a href="https://www.threads.net/@49453_" target="_blank" class="ee-link">made by 49453</a></div><div class="main-wrapper" id="cont"></div><div id="loading-status"></div><div id="pop-bg" class="pop-bg"></div><div id="post-popup"></div></body></html>`);
     win.document.close();
 
-    /* 4. 상호작용 기능 */
     const initDrag = () => {
         const slider = win.document.getElementById('cont');
         let isDown = false,
@@ -112,7 +108,6 @@
         win.document.getElementById('pop-bg').style.display = 'none';
     };
 
-    /* 5. 데이터 렌더링 */
     const fD = async (u) => fetch(u).then(r => {
         if (!r.ok) throw new Error();
         return r.json()
@@ -171,7 +166,6 @@
         cont.scrollLeft = cont.scrollWidth;
     };
 
-    /* 6. 컨트롤 버튼 바인딩 */
     win.document.getElementById('pD').onclick = () => renderAll(getDt(win.document.getElementById('base-date-disp').innerText, 1));
     win.document.getElementById('nD').onclick = () => renderAll(getDt(win.document.getElementById('base-date-disp').innerText, -1));
     win.document.getElementById('apply').onclick = () => renderAll(win.document.getElementById('base-date-disp').innerText);
