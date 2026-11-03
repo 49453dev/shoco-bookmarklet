@@ -21,8 +21,13 @@
     el.removeAttribute('data-navby-row');
   });
 
+//  const CARD =
+//    'li[class*="adProduct_list_item"],li[class*="product_list_item"]';
+
   const CARD =
-    'li[class*="adProduct_list_item"],li[class*="product_list_item"]';
+    'li[class*="adProduct_list_item"],' +
+    'li[class*="product_list_item"],' +
+    'li[class*="superSavingProduct_list_item"]';
 
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -239,12 +244,19 @@
     const labels = [];
 
     cards.forEach((card, i) => {
+
       const title = card.querySelector(
-        'a[class*="adProduct_link"],a[class*="product_link"]'
+        'a[class*="adProduct_link"],' +
+        'a[class*="product_link"],' +
+        'a[class*="superSavingProduct_link"]'
       );
-      const name = title?.getAttribute('title') || title?.textContent || '';
 
       
+//      const title = card.querySelector(
+//        'a[class*="adProduct_link"],a[class*="product_link"]'
+//      );
+      const name = title?.getAttribute('title') || title?.textContent || '';
+
       const group = title?.getAttribute('data-shp-contents-grp');
 
       const isAd =
@@ -254,7 +266,20 @@
       const ad =
         isAd ? '광고' :
         group === 'prod' ? '일반' : '미확인';
+      
+      // const group = title?.getAttribute('data-shp-contents-grp');
 
+      // const isAd =
+      //   group === 'ad' ||
+      //   !!card.querySelector('svg.svg_ad, svg.svg_super');
+
+      // const ad =
+      //   isAd ? '광고' :
+      //   group === 'prod' ? '일반' : '미확인';
+
+
+
+      
       const image = card.querySelector(
         'a[class*="thumbnail_thumb"] img'
       );
@@ -266,6 +291,7 @@
           'position:absolute;padding:1px 3px;' +
           
           `background:${isAd ? '#FF6728' : '#18365c'};` +
+          
 
 
           
