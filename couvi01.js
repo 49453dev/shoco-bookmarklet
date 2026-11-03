@@ -398,7 +398,30 @@
       `${columns}열 보기 적용 중 (클릭 시 ${next}열)`;
   });
 
-  const close = () => overlay.remove();
+  
+  // 팝업 닫기 (확인 버튼 / 바깥 클릭 / Enter / ESC)
+  const close = () => {
+    document.removeEventListener('keydown', handleKeydown);
+    overlay.remove();
+  };
+
+  const handleKeydown = (event) => {
+    if (event.key === 'Enter' || event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+    }
+  };
+
+  document.addEventListener('keydown', handleKeydown, true);
+
+  panel.querySelector('#koobi-close')
+    .addEventListener('click', close);
+
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay) close();
+  });
+
 
   panel.querySelector('#koobi-close')
     .addEventListener('click', close);
