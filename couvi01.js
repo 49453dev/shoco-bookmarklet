@@ -398,13 +398,10 @@
       `${columns}열 보기 적용 중 (클릭 시 ${next}열)`;
   });
 
-  
-  // 팝업 닫기 (확인 버튼 / 바깥 클릭 / Enter / ESC)
-  const close = () => {
-    document.removeEventListener('keydown', handleKeydown);
-    overlay.remove();
-  };
 
+
+
+  // 팝업 닫기: Enter / ESC / 확인 버튼 / 바깥 클릭
   const handleKeydown = (event) => {
     if (event.key === 'Enter' || event.key === 'Escape') {
       event.preventDefault();
@@ -413,22 +410,24 @@
     }
   };
 
+  const close = () => {
+    document.removeEventListener('keydown', handleKeydown, true);
+    overlay.remove();
+  };
+
   document.addEventListener('keydown', handleKeydown, true);
 
   panel.querySelector('#koobi-close')
     .addEventListener('click', close);
 
   overlay.addEventListener('click', event => {
-    if (event.target === overlay) close();
+    if (event.target === overlay) {
+      close();
+    }
   });
 
 
-  panel.querySelector('#koobi-close')
-    .addEventListener('click', close);
 
-  overlay.addEventListener('click', event => {
-    if (event.target === overlay) close();
-  });
 
   console.log(`[쿠비 v${VERSION}]`, {
     keyword,
