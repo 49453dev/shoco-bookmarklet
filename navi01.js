@@ -4,46 +4,56 @@
   }
 
   window.__navbyLoading = true;
-  window.__navbyRankCleanup?.();
 
-  [
-    'navby-style',
-    'navby-grid-test',
-    'navby-gap-fix',
-    'navby-fit-style'
-  ].forEach(id => document.getElementById(id)?.remove());
-
-  document.querySelectorAll(
-    '[data-navby-visby],[data-navby-grid],[data-navby-row]'
-  ).forEach(el => {
-    el.removeAttribute('data-navby-visby');
-    el.removeAttribute('data-navby-grid');
-    el.removeAttribute('data-navby-row');
-  });
-
-//  const CARD =
-//    'li[class*="adProduct_list_item"],li[class*="product_list_item"]';
-
-  const CARD =
-    'li[class*="adProduct_list_item"],' +
-    'li[class*="product_list_item"],' +
-    'li[class*="superSavingProduct_list_item"]';
-
-  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-  const loading = document.createElement('div');
-  loading.textContent = '상품을 불러오는 중입니다…';
-  loading.style.cssText =
-    'position:fixed;top:15px;right:15px;z-index:2147483647;' +
-    'background:#18365c;color:white;padding:12px 16px;' +
-    'border-radius:8px;font:bold 14px Arial;pointer-events:none;';
-  document.body.appendChild(loading);
+  let loading;
 
   try {
+    window.__navbyRankCleanup?.();
+
+    [
+      'navby-style',
+      'navby-grid-test',
+      'navby-gap-fix',
+      'navby-fit-style'
+    ].forEach(id => document.getElementById(id)?.remove());
+
+    document.querySelectorAll(
+      '[data-navby-visby],[data-navby-grid],[data-navby-row]'
+    ).forEach(el => {
+      el.removeAttribute('data-navby-visby');
+      el.removeAttribute('data-navby-grid');
+      el.removeAttribute('data-navby-row');
+    });
+
+    const CARD = [
+      'li[class*="adProduct_list_item"]',
+      'li[class*="product_list_item"]',
+      'li[class*="superSavingProduct_list_item"]'
+    ].join(',');
+
+    const TITLE = [
+      'a[class*="adProduct_link"]',
+      'a[class*="product_link"]',
+      'a[class*="superSavingProduct_link"]'
+    ].join(',');
+
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    loading = document.createElement('div');
+    loading.textContent = '상품을 불러오는 중입니다…';
+    loading.style.cssText =
+      'position:fixed;top:15px;right:15px;z-index:2147483647;' +
+      'background:#18365c;color:white;padding:12px 16px;' +
+      'border-radius:8px;font:bold 14px Arial;pointer-events:none;';
+    document.body.appendChild(loading);
+
     if (!document.querySelector(CARD)) {
       alert('상품 카드를 찾지 못했습니다.');
       return;
     }
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    await wait(150);
 
     const start = Date.now();
     let stable = 0;
@@ -151,12 +161,15 @@
         gap:16px 8px!important;
         align-items:start!important;
       }
+
       [data-navby-grid]>:not([data-navby-row]){
         grid-column:1/-1!important;
       }
+
       [data-navby-grid]>[data-navby-row]{
         display:contents!important;
       }
+
       [data-navby-grid]::before,
       [data-navby-grid]::after,
       [data-navby-row]::before,
@@ -164,9 +177,11 @@
         content:none!important;
         display:none!important;
       }
+
       [data-navby-row]>:empty{
         display:none!important;
       }
+
       [data-navby-row]>li{
         zoom:.5!important;
         width:auto!important;
@@ -177,14 +192,17 @@
         box-sizing:border-box!important;
         align-self:stretch!important;
       }
+
       [data-navby-row]>li>div[class*="thumbnail_thumb_wrap"],
       [data-navby-row]>li>div[class*="product_info_area"],
-      [data-navby-row]>li>div[class*="adProduct_info_area"]{
+      [data-navby-row]>li>div[class*="adProduct_info_area"],
+      [data-navby-row]>li>div[class*="superSavingProduct_info_area"]{
         width:100%!important;
         min-width:0!important;
         max-width:100%!important;
         box-sizing:border-box!important;
       }
+
       [data-navby-row]>li a[class*="thumbnail_thumb"]{
         display:block!important;
         width:100%!important;
@@ -192,20 +210,25 @@
         height:auto!important;
         box-sizing:border-box!important;
       }
+
       [data-navby-row]>li a[class*="thumbnail_thumb"]>img{
         display:block!important;
         width:100%!important;
         height:auto!important;
         object-fit:contain!important;
       }
+
       [data-navby-row]>li [class*="product_title"],
-      [data-navby-row]>li [class*="adProduct_title"]{
+      [data-navby-row]>li [class*="adProduct_title"],
+      [data-navby-row]>li [class*="superSavingProduct_title"]{
         width:auto!important;
         min-width:0!important;
         max-width:100%!important;
       }
+
       [data-navby-row]>li a[class*="product_link"],
-      [data-navby-row]>li a[class*="adProduct_link"]{
+      [data-navby-row]>li a[class*="adProduct_link"],
+      [data-navby-row]>li a[class*="superSavingProduct_link"]{
         display:-webkit-box!important;
         -webkit-box-orient:vertical!important;
         -webkit-line-clamp:2!important;
@@ -214,6 +237,7 @@
         overflow-wrap:anywhere!important;
         max-width:100%!important;
       }
+
       [data-navby-row]>li [class*="groupOption_option_area"],
       [data-navby-row]>li button[class*="groupOption_btn_option_more"]{
         width:100%!important;
@@ -221,6 +245,7 @@
         min-width:0!important;
         box-sizing:border-box!important;
       }
+
       [data-navby-visby]{
         background:#A1FFDC!important;
         border-radius:10px!important;
@@ -228,8 +253,10 @@
         outline-offset:-2px!important;
         box-shadow:0 0 14px rgba(0,230,173,.38)!important;
       }
+
       [data-navby-visby] a[class*="product_link"],
-      [data-navby-visby] a[class*="adProduct_link"]{
+      [data-navby-visby] a[class*="adProduct_link"],
+      [data-navby-visby] a[class*="superSavingProduct_link"]{
         color:#152B28!important;
       }
     `;
@@ -243,70 +270,7 @@
     const hits = [];
     const labels = [];
 
-    cards.forEach((card, i) => {
-
-      const title = card.querySelector(
-        'a[class*="adProduct_link"],' +
-        'a[class*="product_link"],' +
-        'a[class*="superSavingProduct_link"]'
-      );
-
-      
-//      const title = card.querySelector(
-//        'a[class*="adProduct_link"],a[class*="product_link"]'
-//      );
-      const name = title?.getAttribute('title') || title?.textContent || '';
-
-      const group = title?.getAttribute('data-shp-contents-grp');
-
-      const isAd =
-        group === 'ad' ||
-        !!card.querySelector('svg.svg_ad, svg.svg_super');
-
-      const ad =
-        isAd ? '광고' :
-        group === 'prod' ? '일반' : '미확인';
-      
-      // const group = title?.getAttribute('data-shp-contents-grp');
-
-      // const isAd =
-      //   group === 'ad' ||
-      //   !!card.querySelector('svg.svg_ad, svg.svg_super');
-
-      // const ad =
-      //   isAd ? '광고' :
-      //   group === 'prod' ? '일반' : '미확인';
-
-
-
-      
-      const image = card.querySelector(
-        'a[class*="thumbnail_thumb"] img'
-      );
-      
-      if (image) {
-        const label = document.createElement('span');
-        label.textContent = `${i + 1}위`;
-        label.style.cssText =
-          'position:absolute;padding:1px 3px;' +
-          
-          `background:${isAd ? '#FF6728' : '#18365c'};` +
-          
-
-
-          
-          'color:white;border-radius:3px;font:bold 10px/15px Arial;' +
-          'white-space:nowrap;transform:translateX(-100%);';
-
-        layer.appendChild(label);
-        labels.push({ image, label });
-      }
-
-      if (!/비스비|\bVISBYH?\b/i.test(name)) return;
-
-      card.setAttribute('data-navby-visby', '');
-      hits.push(`${i + 1}위(${ad})`);
-    });
+    let frame = 0;
 
     const update = () => {
       labels.forEach(({ image, label }) => {
@@ -322,16 +286,10 @@
       });
     };
 
-    let frame = 0;
-
     const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(update);
     };
-
-    window.addEventListener('scroll', schedule, true);
-    window.addEventListener('resize', schedule);
-    document.addEventListener('load', schedule, true);
 
     window.__navbyRankCleanup = () => {
       cancelAnimationFrame(frame);
@@ -341,6 +299,46 @@
       layer.remove();
       delete window.__navbyRankCleanup;
     };
+
+    cards.forEach((card, i) => {
+      const title = card.querySelector(TITLE);
+      const name = title?.getAttribute('title') || title?.textContent || '';
+      const group = title?.getAttribute('data-shp-contents-grp');
+
+      const isAd =
+        group === 'ad' ||
+        !!card.querySelector('svg.svg_ad, svg.svg_super');
+
+      const ad =
+        isAd ? '광고' :
+        group === 'prod' ? '일반' : '미확인';
+
+      const image = card.querySelector(
+        'a[class*="thumbnail_thumb"] img'
+      );
+
+      if (image) {
+        const label = document.createElement('span');
+        label.textContent = `${i + 1}위`;
+        label.style.cssText =
+          'position:absolute;padding:1px 3px;' +
+          `background:${isAd ? '#FF6728' : '#18365c'};` +
+          'color:white;border-radius:3px;font:bold 10px/15px Arial;' +
+          'white-space:nowrap;transform:translateX(-100%);';
+
+        layer.appendChild(label);
+        labels.push({ image, label });
+      }
+
+      if (!/비스비|\bVISBYH?\b/i.test(name)) return;
+
+      card.setAttribute('data-navby-visby', '');
+      hits.push(`${i + 1}위(${ad})`);
+    });
+
+    window.addEventListener('scroll', schedule, true);
+    window.addEventListener('resize', schedule);
+    document.addEventListener('load', schedule, true);
 
     loading.remove();
     schedule();
@@ -352,10 +350,11 @@
       `순위: ${hits.join(', ') || '없음'}`
     );
   } catch (error) {
+    window.__navbyRankCleanup?.();
     console.error('네비 실행 오류:', error);
     alert('실행 중 오류가 발생했습니다. 새로고침 후 다시 실행해 주세요.');
   } finally {
-    loading.remove();
+    loading?.remove();
     delete window.__navbyLoading;
   }
 })();
