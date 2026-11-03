@@ -243,21 +243,32 @@
         'a[class*="adProduct_link"],a[class*="product_link"]'
       );
       const name = title?.getAttribute('title') || title?.textContent || '';
+
+      
       const group = title?.getAttribute('data-shp-contents-grp');
+
+      const isAd =
+        group === 'ad' ||
+        !!card.querySelector('svg.svg_ad, svg.svg_super');
+
       const ad =
-        group === 'ad' ? '광고' :
+        isAd ? '광고' :
         group === 'prod' ? '일반' : '미확인';
 
       const image = card.querySelector(
         'a[class*="thumbnail_thumb"] img'
       );
-
+      
       if (image) {
         const label = document.createElement('span');
         label.textContent = `${i + 1}위`;
         label.style.cssText =
           'position:absolute;padding:1px 3px;' +
-          `background:${group === 'ad' ? '#FF6728' : '#18365c'};` +
+          
+          `background:${isAd ? '#FF6728' : '#18365c'};` +
+
+
+          
           'color:white;border-radius:3px;font:bold 10px/15px Arial;' +
           'white-space:nowrap;transform:translateX(-100%);';
 
