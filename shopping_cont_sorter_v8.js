@@ -1,10 +1,42 @@
 (async () => {
-  const query = new URLSearchParams(location.search).get("query");
+  const query = new URLSearchParams(location.search).get("query")?.trim();
 
   if (!query) {
-    alert("검색어를 찾지 못했습니다.");
+    alert("검색어를 찾지 못했습니다. 쇼핑커넥트 상품 검색 결과에서 실행해 주세요.");
     return;
   }
+
+  const panelId = "bm-sort-panel";
+  document.getElementById(panelId)?.remove();
+
+  const panel = document.createElement("div");
+  panel.id = panelId;
+  panel.style.cssText = [
+    "position:fixed",
+    "top:80px",
+    "right:16px",
+    "z-index:2147483647",
+    "display:flex",
+    "align-items:center",
+    "gap:6px",
+    "padding:8px",
+    "background:white",
+    "border:1px solid #ddd",
+    "border-radius:8px",
+    "box-shadow:0 2px 8px #0002",
+    "font-size:12px"
+  ].join(";");
+
+  const status = document.createElement("span");
+  status.textContent = "상품 불러오는 중…";
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.textContent = "닫기";
+  close.onclick = () => panel.remove();
+
+  panel.append(status, close);
+  document.body.appendChild(panel);
 
   const api = new URL(
     "https://gw-brandconnect.naver.com/affiliate/query/affiliate-products/search-by-query"
@@ -12,144 +44,152 @@
   api.searchParams.set("query", query);
   api.searchParams.set("limit", "100");
 
-  let res;
-  try {
-    res = await fetch(api, { credentials: "include" });
-  } catch (error) {
-    console.error("[쇼핑커넥트] 상품 API 연결 실패", error);
-    alert("상품 API에 연결하지 못했습니다. F12 콘솔을 확인해 주세요.");
-    return;
-  }
-
-  if (!res.ok) {
-    alert(`상품 API 요청 실패 (HTTP ${res.status})`);
-    return;
-  }
-
-  let json;
-  try {
-    json = await res.json();
-  } catch (error) {
-    console.error("[쇼핑커넥트] JSON 파싱 실패", error);
-    alert("상품 API 응답을 JSON으로 읽을 수 없습니다.");
-    return;
-  }
-
-  const items = json?.data;
-
-  if (!Array.isArray(items)) {
-    console.warn("[쇼핑커넥트] 응답 구조", {
-      responseKeys: Object.keys(json ?? {}),
-      dataKeys: items && typeof items === "object" ? Object.keys(items) : [],
-      dataType: items === null ? "null" : typeof items
-    });
-    alert("상품 API 응답 형식이 예상과 다릅니다. F12 콘솔을 확인해 주세요.");
-    return;
-  }
-
-  if (items.length === 0) {
-    alert("상품 API가 빈 목록을 반환했습니다.");
-    return;
-  }
+  const normalize = text => text.replace(/\s+/g, "").trim();
 
   try {
-    const anchor = [...document.querySelectorAll("span")].find(element =>
-      element.innerText?.replace(/\s+/g, "").includes("노출됩니다")
+    const response = await fetch(api, { credentials: "include" });
+
+    if (!response.ok) {
+      status.textContent = `상품 API 오류 (HTTP ${response.status})`;
+      return;
+    }
+
+    const json = await response.json();
+
+    if (!Array.isArray(json?.data)) {
+      status.textContent = "상품 API 응답 형식이 다릅니다.";
+      console.warn("[쇼핑커넥트] 응답 필드", Object.keys(json ?? {}));
+      return;
+    }
+
+    const items = json.data;
+
+    if (!items.length) {
+      status.textContent = "상품 API가 빈 목록을 반환했습니다.";
+      return;
+    }
+
+    const products = items
+      .filter(item => typeof item?.productName === "string")
+      .map(item => ({ item, name: normalize(item.productName) }))
+      .filter(product => product.name)
+      .sort((a, b) => b.name.length - a.name.length);
+
+    const matches = [];
+
+    for (const card of document.querySelectorAll("li")) {
+      if (!card.getClientRects().length) continue;
+
+      const text = normalize(card.innerText || "");
+      const product = products.find(({ name }) => text.includes(name));
+
+      if (product) matches.push({ card, item: product.item });
+    }
+
+    // 중첩 목록에서는 상품명에 일치한 가장 안쪽 li를 사용합니다.
+    const cards = matches.filter(({ card }) =>
+      !matches.some(other => other.card !== card && card.contains(other.card))
     );
 
-    if (!anchor) {
-      alert("쇼핑커넥트 상품찾기 검색 결과에서 실행해 주세요.");
+    if (!cards.length) {
+      status.textContent = `API ${items.length}개 · 화면 매칭 0개`;
+      console.warn("[쇼핑커넥트] 상품 카드 매칭 실패", {
+        apiItems: items.length,
+        liCount: document.querySelectorAll("li").length,
+        sampleProductName: items[0]?.productName
+      });
       return;
     }
 
-    const cards = [];
-
-    document.querySelectorAll("li").forEach(card => {
-      const text = card.innerText || "";
-      const item = items.find(
-        product => product?.productName && text.includes(product.productName)
-      );
-
-      if (!item) return;
-
+    for (const { card, item } of cards) {
       card.dataset.commission = item.commissionRate ?? 0;
-      card.dataset.price = item.salePrice ?? 0;
-      card.dataset.discount = item.discountRate ?? 0;
-      cards.push(card);
+      card.dataset.price = item.discountedSalePrice ?? item.salePrice ?? 0;
+      card.dataset.discount = item.discountedRate ?? 0;
 
-      if (!item.productUrl || card.querySelector(".__product_url")) return;
+      if (typeof item.productUrl !== "string") continue;
 
-      const box = document.createElement("div");
-      box.className = "__product_url";
-      box.style.cssText =
-        "margin:6px 0;padding-bottom:4px;font-size:11px;color:#0a7;" +
-        "border-bottom:1px dashed #ddd;word-break:break-all;";
+      let url;
+      try {
+        url = new URL(item.productUrl);
+      } catch {
+        continue;
+      }
+      if (url.protocol !== "https:" && url.protocol !== "http:") continue;
 
-      const link = document.createElement("a");
-      link.href = item.productUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.style.cssText = "color:#0a7;text-decoration:none;";
-      link.textContent = "🔗 " + item.productUrl;
-      box.appendChild(link);
+      let box = card.querySelector(".__product_url");
 
-      const controls = card.querySelectorAll("button,[role='button'],a");
-      const lastControl = controls[controls.length - 1];
-
-      if (lastControl?.parentNode) {
-        lastControl.parentNode.insertBefore(box, lastControl);
-      } else {
+      if (!box) {
+        box = document.createElement("div");
+        box.className = "__product_url";
+        box.style.cssText =
+          "margin:6px 0;padding-bottom:4px;font-size:11px;" +
+          "border-bottom:1px dashed #ddd;overflow-wrap:anywhere;";
         card.appendChild(box);
       }
-    });
 
-    if (cards.length === 0) {
-      alert(`API 상품 ${items.length}개를 받았지만 화면에서 일치하는 카드를 찾지 못했습니다.`);
-      return;
+      const link = document.createElement("a");
+      link.href = url.href;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.style.cssText = "color:#087;text-decoration:none;";
+      link.textContent = "🔗 " + url.href;
+      box.replaceChildren(link);
     }
-
-    const container = anchor.parentElement;
-    container.style.display = "flex";
-    container.style.alignItems = "center";
-    document.getElementById("bm-sort-panel")?.remove();
-
-    const panel = document.createElement("div");
-    panel.id = "bm-sort-panel";
-    panel.style.cssText = "display:flex;gap:6px;margin-right:8px;";
 
     const makeButton = (label, key) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.dataset.dir = "desc";
-      button.textContent = label + "↓";
+      button.textContent = `${label} ↓`;
       button.style.cssText =
         "padding:4px 8px;border:0;border-radius:4px;background:#ff7a00;" +
         "color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;";
 
-      button.onclick = () => {
-        const isDescending = button.dataset.dir === "desc";
-        const direction = isDescending ? 1 : -1;
-        const sorted = [...cards].sort((a, b) =>
-          direction * (parseFloat(b.dataset[key]) - parseFloat(a.dataset[key]))
-        );
+      let descending = true;
 
-        sorted.forEach(card => card.parentElement?.appendChild(card));
-        button.dataset.dir = isDescending ? "asc" : "desc";
-        button.textContent = label + (isDescending ? "↓" : "↑");
+      button.onclick = () => {
+        const byParent = new Map();
+
+        for (const { card } of cards) {
+          const parent = card.parentElement;
+          if (!parent || !card.isConnected) continue;
+
+          if (!byParent.has(parent)) byParent.set(parent, new Set());
+          byParent.get(parent).add(card);
+        }
+
+        for (const [parent, group] of byParent) {
+          // 매칭된 카드끼리만 순서를 바꾸고, 다른 항목의 위치는 유지합니다.
+          const current = [...parent.children].filter(card => group.has(card));
+          const direction = descending ? -1 : 1;
+          const sorted = [...current].sort((a, b) =>
+            direction * (Number(a.dataset[key]) - Number(b.dataset[key]))
+          );
+
+          const slots = current.map(card => {
+            const slot = document.createComment("shopping-connect-sort");
+            card.before(slot);
+            return slot;
+          });
+
+          slots.forEach((slot, index) => slot.replaceWith(sorted[index]));
+        }
+
+        status.textContent = `${label} ${descending ? "높은 순" : "낮은 순"}`;
+        descending = !descending;
+        button.textContent = `${label} ${descending ? "↓" : "↑"}`;
       };
 
       return button;
     };
 
-    panel.append(
+    status.textContent = `상품 ${cards.length}개`;
+    close.before(
       makeButton("수수료", "commission"),
       makeButton("가격", "price"),
       makeButton("할인율", "discount")
     );
-
-    container.insertBefore(panel, anchor);
   } catch (error) {
-    console.error("[쇼핑커넥트] 화면 처리 오류", error);
-    alert("상품 화면을 처리하는 중 오류가 발생했습니다. F12 콘솔을 확인해 주세요.");
+    status.textContent = "상품 처리 실패 · F12 콘솔 확인";
+    console.error("[쇼핑커넥트] 실행 오류", error);
   }
 })();
