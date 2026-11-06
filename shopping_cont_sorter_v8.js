@@ -1,13 +1,79 @@
-(async () => {
-  const query = new URLSearchParams(location.search).get("query")?.trim();
-
-  if (!query) {
-    alert("검색어를 찾지 못했습니다. 쇼핑커넥트 상품 검색 결과에서 실행해 주세요.");
-    return;
-  }
-
+(() => {
   const panelId = "bm-sort-panel";
   document.getElementById(panelId)?.remove();
+
+  const fields = {
+    commission: "수수료",
+    price: "가격",
+    discount: "할인율"
+  };
+
+  const number = value => Number(value.replace(/,/g, ""));
+
+  const readCard = card => {
+    const text = (card.innerText || "").replace(/[ \t\u00a0]+/g, " ");
+
+    const commission = text.match(
+      /(?:수수료율|수수료|커미션)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*%/
+    );
+
+    // 할인율 문구가 없으면 가격 바로 앞에 표시된 퍼센트를 확인합니다.
+    const discount = text.match(
+      /할인(?:율)?\s*[:：]?\s*(\d+(?:\.\d+)?)\s*%/
+    ) ?? text.match(
+      /(?:^|\n)\s*(\d+(?:\.\d+)?)\s*%\s*(?:\n\s*)?[\d,]+\s*원/
+    );
+
+    const labeledPrice = text.match(
+      /(?:할인\s*적용가|할인가|최종\s*판매가|판매가)\s*[:：]?\s*([\d,]+)\s*원/
+    );
+
+    const visiblePrices = [...text.matchAll(/(\d[\d,]*)\s*원/g)]
+      .map(match => number(match[1]));
+
+    // 라벨이 없는 가격이 여러 개면 판매가를 추측하지 않습니다.
+    const price = labeledPrice
+      ? number(labeledPrice[1])
+      : visiblePrices.length === 1
+        ? visiblePrices[0]
+        : null;
+
+    return {
+      card,
+      commission: commission ? number(commission[1]) : null,
+      price,
+      discount: discount ? number(discount[1]) : null,
+      hasPrice: visiblePrices.length > 0
+    };
+  };
+
+  const collectGroups = () => {
+    const matches = [...document.querySelectorAll('li,[role="listitem"]')]
+      .filter(card => card.getClientRects().length)
+      .map(readCard)
+      .filter(item =>
+        item.hasPrice && (item.commission !== null || item.discount !== null)
+      );
+
+    const groups = new Map();
+
+    for (const item of matches) {
+      const { card } = item;
+
+      // 목록 전체를 감싸는 상위 항목은 제외합니다.
+      if (matches.some(other => other.card !== card && card.contains(other.card))) {
+        continue;
+      }
+
+      const parent = card.parentElement;
+      if (!parent) continue;
+
+      if (!groups.has(parent)) groups.set(parent, []);
+      groups.get(parent).push(item);
+    }
+
+    return [...groups.values()].filter(group => group.length >= 2);
+  };
 
   const panel = document.createElement("div");
   panel.id = panelId;
@@ -20,7 +86,8 @@
     "align-items:center",
     "gap:6px",
     "padding:8px",
-    "background:white",
+    "background:#fff",
+    "color:#222",
     "border:1px solid #ddd",
     "border-radius:8px",
     "box-shadow:0 2px 8px #0002",
@@ -28,168 +95,63 @@
   ].join(";");
 
   const status = document.createElement("span");
-  status.textContent = "상품 불러오는 중…";
 
-  const close = document.createElement("button");
-  close.type = "button";
-  close.textContent = "닫기";
-  close.onclick = () => panel.remove();
+  const makeButton = (label, onClick) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.style.cssText =
+      "padding:5px 8px;border:0;border-radius:4px;background:#ff7a00;" +
+      "color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;";
+    button.addEventListener("click", onClick);
+    return button;
+  };
 
-  panel.append(status, close);
+  panel.append(status);
+
+  for (const [key, label] of Object.entries(fields)) {
+    let descending = true;
+
+    const button = makeButton(`${label} ↓`, () => {
+      const groups = collectGroups();
+      let sortedCount = 0;
+
+      for (const group of groups) {
+        // 값이 확인된 카드끼리만 위치를 바꿉니다.
+        const sortable = group.filter(item => Number.isFinite(item[key]));
+        if (sortable.length < 2) continue;
+
+        const sorted = [...sortable].sort((a, b) =>
+          descending ? b[key] - a[key] : a[key] - b[key]
+        );
+
+        const slots = sortable.map(({ card }) => {
+          const slot = document.createComment("shopping-connect-sort");
+          card.before(slot);
+          return slot;
+        });
+
+        slots.forEach((slot, index) => slot.replaceWith(sorted[index].card));
+        sortedCount += sortable.length;
+      }
+
+      if (!sortedCount) {
+        status.textContent = `정렬할 ${label} 값이 있는 카드가 부족합니다.`;
+        return;
+      }
+
+      status.textContent =
+        `${label} ${descending ? "높은 순" : "낮은 순"} · ${sortedCount}개`;
+      descending = !descending;
+      button.textContent = `${label} ${descending ? "↓" : "↑"}`;
+    });
+
+    panel.append(button);
+  }
+
+  panel.append(makeButton("닫기", () => panel.remove()));
   document.body.appendChild(panel);
 
-  const api = new URL(
-    "https://gw-brandconnect.naver.com/affiliate/query/affiliate-products/search-by-query"
-  );
-  api.searchParams.set("query", query);
-  api.searchParams.set("limit", "100");
-
-  const normalize = text => text.replace(/\s+/g, "").trim();
-
-  try {
-    const response = await fetch(api, { credentials: "include" });
-
-    if (!response.ok) {
-      status.textContent = `상품 API 오류 (HTTP ${response.status})`;
-      return;
-    }
-
-    const json = await response.json();
-
-    if (!Array.isArray(json?.data)) {
-      status.textContent = "상품 API 응답 형식이 다릅니다.";
-      console.warn("[쇼핑커넥트] 응답 필드", Object.keys(json ?? {}));
-      return;
-    }
-
-    const items = json.data;
-
-    if (!items.length) {
-      status.textContent = "상품 API가 빈 목록을 반환했습니다.";
-      return;
-    }
-
-    const products = items
-      .filter(item => typeof item?.productName === "string")
-      .map(item => ({ item, name: normalize(item.productName) }))
-      .filter(product => product.name)
-      .sort((a, b) => b.name.length - a.name.length);
-
-    const matches = [];
-
-    for (const card of document.querySelectorAll("li")) {
-      if (!card.getClientRects().length) continue;
-
-      const text = normalize(card.innerText || "");
-      const product = products.find(({ name }) => text.includes(name));
-
-      if (product) matches.push({ card, item: product.item });
-    }
-
-    // 중첩 목록에서는 상품명에 일치한 가장 안쪽 li를 사용합니다.
-    const cards = matches.filter(({ card }) =>
-      !matches.some(other => other.card !== card && card.contains(other.card))
-    );
-
-    if (!cards.length) {
-      status.textContent = `API ${items.length}개 · 화면 매칭 0개`;
-      console.warn("[쇼핑커넥트] 상품 카드 매칭 실패", {
-        apiItems: items.length,
-        liCount: document.querySelectorAll("li").length,
-        sampleProductName: items[0]?.productName
-      });
-      return;
-    }
-
-    for (const { card, item } of cards) {
-      card.dataset.commission = item.commissionRate ?? 0;
-      card.dataset.price = item.discountedSalePrice ?? item.salePrice ?? 0;
-      card.dataset.discount = item.discountedRate ?? 0;
-
-      if (typeof item.productUrl !== "string") continue;
-
-      let url;
-      try {
-        url = new URL(item.productUrl);
-      } catch {
-        continue;
-      }
-      if (url.protocol !== "https:" && url.protocol !== "http:") continue;
-
-      let box = card.querySelector(".__product_url");
-
-      if (!box) {
-        box = document.createElement("div");
-        box.className = "__product_url";
-        box.style.cssText =
-          "margin:6px 0;padding-bottom:4px;font-size:11px;" +
-          "border-bottom:1px dashed #ddd;overflow-wrap:anywhere;";
-        card.appendChild(box);
-      }
-
-      const link = document.createElement("a");
-      link.href = url.href;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.style.cssText = "color:#087;text-decoration:none;";
-      link.textContent = "🔗 " + url.href;
-      box.replaceChildren(link);
-    }
-
-    const makeButton = (label, key) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = `${label} ↓`;
-      button.style.cssText =
-        "padding:4px 8px;border:0;border-radius:4px;background:#ff7a00;" +
-        "color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;";
-
-      let descending = true;
-
-      button.onclick = () => {
-        const byParent = new Map();
-
-        for (const { card } of cards) {
-          const parent = card.parentElement;
-          if (!parent || !card.isConnected) continue;
-
-          if (!byParent.has(parent)) byParent.set(parent, new Set());
-          byParent.get(parent).add(card);
-        }
-
-        for (const [parent, group] of byParent) {
-          // 매칭된 카드끼리만 순서를 바꾸고, 다른 항목의 위치는 유지합니다.
-          const current = [...parent.children].filter(card => group.has(card));
-          const direction = descending ? -1 : 1;
-          const sorted = [...current].sort((a, b) =>
-            direction * (Number(a.dataset[key]) - Number(b.dataset[key]))
-          );
-
-          const slots = current.map(card => {
-            const slot = document.createComment("shopping-connect-sort");
-            card.before(slot);
-            return slot;
-          });
-
-          slots.forEach((slot, index) => slot.replaceWith(sorted[index]));
-        }
-
-        status.textContent = `${label} ${descending ? "높은 순" : "낮은 순"}`;
-        descending = !descending;
-        button.textContent = `${label} ${descending ? "↓" : "↑"}`;
-      };
-
-      return button;
-    };
-
-    status.textContent = `상품 ${cards.length}개`;
-    close.before(
-      makeButton("수수료", "commission"),
-      makeButton("가격", "price"),
-      makeButton("할인율", "discount")
-    );
-  } catch (error) {
-    status.textContent = "상품 처리 실패 · F12 콘솔 확인";
-    console.error("[쇼핑커넥트] 실행 오류", error);
-  }
+  const count = collectGroups().reduce((sum, group) => sum + group.length, 0);
+  status.textContent = `감지된 상품 ${count}개`;
 })();
