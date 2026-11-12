@@ -18,24 +18,12 @@
   }
 
   async function downloadSelected() {
+    // 선택한 이미지를 브라우저 기본 다운로드 폴더에 개별 파일로 저장한다.
+    // 폴더 선택 창·완료 알림창 없이 진행 상황은 버튼과 상단 문구로만 표시한다.
     const imgs = Array.from(document.querySelectorAll('.item-wrapper.selected img'));
-    if (imgs.length === 0) { alert('다운로드할 이미지를 선택해주세요.'); return; }
+    const status = document.getElementById('sel-count');
+    if (imgs.length === 0) { status.textContent = '다운로드할 이미지를 선택해주세요'; return; }
     const btn = document.getElementById('dl-btn');
-
-    // 1) 상품명 폴더에 저장 (Chrome/Edge: File System Access API)
-    //    저장할 위치(상위 폴더)를 고르면 그 안에 상품명 폴더를 만들어 저장한다.
-    //    지원하지 않는 브라우저이거나 사용자가 취소하면 일반 다운로드로 저장한다.
-    let dir = null;
-    if (window.showDirectoryPicker) {
-      try {
-        const parent = await window.showDirectoryPicker({ id: 'shoco-image-download', mode: 'readwrite' });
-        dir = await parent.getDirectoryHandle(DL_FOLDER, { create: true });
-      } catch (e) {
-        if (e && e.name === 'AbortError') return;
-        dir = null;
-      }
-    }
-
     btn.disabled = true;
     let ok = 0;
     const failed = [];
@@ -43,49 +31,33 @@
       const src = imgs[i].src;
       btn.textContent = '다운로드 ' + (i + 1) + '/' + imgs.length;
       const isThumb = !!imgs[i].closest('.item-wrapper').querySelector('.thumb-tag');
-      const base = String(i + 1).padStart(3, '0') + (isThumb ? '_thumb' : '');
+      const base = DL_FOLDER + '_' + String(i + 1).padStart(3, '0') + (isThumb ? '_thumb' : '');
       try {
-        const res = await fetch(src);
+        const res = await fetch(src, { credentials: 'omit' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const blob = await res.blob();
         let ext = (blob.type.split('/')[1] || 'jpg').split(';')[0].split('+')[0];
         if (ext === 'jpeg') ext = 'jpg';
-        if (dir) {
-          const fh = await dir.getFileHandle(base + '.' + ext, { create: true });
-          const w = await fh.createWritable();
-          await w.write(blob);
-          await w.close();
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = DL_FOLDER + '_' + base + '.' + ext;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
-          await new Promise(r => setTimeout(r, 300));
-        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = base + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
         ok++;
       } catch (e) {
+        console.warn('[다운로드 실패]', src, e);
         failed.push(src);
       }
+      await new Promise(r => setTimeout(r, 250));
     }
     btn.disabled = false;
     btn.textContent = '선택 이미지 다운로드';
-    const where = dir ? '\'' + DL_FOLDER + '\' 폴더에 ' : '다운로드 폴더에 ';
-    if (failed.length === 0) {
-      alert(where + '이미지 ' + ok + '개 저장 완료');
-    } else {
-      alert('완료 ' + ok + '개 / 실패 ' + failed.length + '개\n실패한 이미지는 새 탭 목록에서 직접 저장해주세요.');
-      const w = window.open();
-      if (w) {
-        w.document.write('<html><body style="background:#000;color:#ccc;font-family:sans-serif">' +
-          failed.map(u => '<p><a style="color:lime" href="' + u + '" target="_blank">' + u + '</a></p>').join('') +
-          '</body></html>');
-        w.document.close();
-      }
-    }
+    status.textContent = failed.length
+      ? '저장 ' + ok + '개 · 실패 ' + failed.length + '개 (콘솔에 주소 표시)'
+      : '저장 완료 ' + ok + '개 (다운로드 폴더)';
   }
 
   const runProcess = async () => {
@@ -232,8 +204,10 @@
     html += '</div><script>';
     html += 'function toggleItem(el) { const chk = el.querySelector(".chk-box"); if (event.target.type !== "checkbox") { chk.checked = !chk.checked; } el.classList.toggle("selected", chk.checked); updateCount(); }';
     html += 'function deselectAll() { document.querySelectorAll(".item-wrapper").forEach(el => { el.classList.remove("selected"); el.querySelector(".chk-box").checked = false; }); updateCount(); }';
-    const dlFolder = ((document.querySelector('meta[property="og:title"]') || {}).content || document.title || '')
-      .replace(/\s*[:|-]\s*(네이버|스마트스토어|브랜드스토어).*$/, '')
+    // 상품명: 상품 정보 영역의 제목(h3) → og:title(' : 스토어명' 제거) → 문서 제목 순
+    const h3 = document.querySelector('h3');
+    const ogTitle = (document.querySelector('meta[property="og:title"]') || {}).content || '';
+    const dlFolder = ((h3 && h3.innerText.trim()) || ogTitle.split(' : ')[0] || document.title.split(' : ')[0] || '')
       .replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 60) || '상품이미지';
     html += 'var DL_FOLDER = ' + JSON.stringify(dlFolder).replace(/</g, '\\u003c') + ';';
     html += updateCount.toString() + selectAllImages.toString() + downloadSelected.toString();
