@@ -21,6 +21,21 @@
     const imgs = Array.from(document.querySelectorAll('.item-wrapper.selected img'));
     if (imgs.length === 0) { alert('다운로드할 이미지를 선택해주세요.'); return; }
     const btn = document.getElementById('dl-btn');
+
+    // 1) 상품명 폴더에 저장 (Chrome/Edge: File System Access API)
+    //    저장할 위치(상위 폴더)를 고르면 그 안에 상품명 폴더를 만들어 저장한다.
+    //    지원하지 않는 브라우저이거나 사용자가 취소하면 일반 다운로드로 저장한다.
+    let dir = null;
+    if (window.showDirectoryPicker) {
+      try {
+        const parent = await window.showDirectoryPicker({ id: 'shoco-image-download', mode: 'readwrite' });
+        dir = await parent.getDirectoryHandle(DL_FOLDER, { create: true });
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        dir = null;
+      }
+    }
+
     btn.disabled = true;
     let ok = 0;
     const failed = [];
@@ -28,31 +43,39 @@
       const src = imgs[i].src;
       btn.textContent = '다운로드 ' + (i + 1) + '/' + imgs.length;
       const isThumb = !!imgs[i].closest('.item-wrapper').querySelector('.thumb-tag');
-      const base = DL_PREFIX + String(i + 1).padStart(3, '0') + (isThumb ? '_thumb' : '');
+      const base = String(i + 1).padStart(3, '0') + (isThumb ? '_thumb' : '');
       try {
         const res = await fetch(src);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const blob = await res.blob();
         let ext = (blob.type.split('/')[1] || 'jpg').split(';')[0].split('+')[0];
         if (ext === 'jpeg') ext = 'jpg';
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = base + '.' + ext;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        if (dir) {
+          const fh = await dir.getFileHandle(base + '.' + ext, { create: true });
+          const w = await fh.createWritable();
+          await w.write(blob);
+          await w.close();
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = DL_FOLDER + '_' + base + '.' + ext;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          await new Promise(r => setTimeout(r, 300));
+        }
         ok++;
       } catch (e) {
         failed.push(src);
       }
-      await new Promise(r => setTimeout(r, 300));
     }
     btn.disabled = false;
     btn.textContent = '선택 이미지 다운로드';
+    const where = dir ? '\'' + DL_FOLDER + '\' 폴더에 ' : '다운로드 폴더에 ';
     if (failed.length === 0) {
-      alert('이미지 ' + ok + '개 다운로드 완료');
+      alert(where + '이미지 ' + ok + '개 저장 완료');
     } else {
       alert('완료 ' + ok + '개 / 실패 ' + failed.length + '개\n실패한 이미지는 새 탭 목록에서 직접 저장해주세요.');
       const w = window.open();
@@ -67,8 +90,11 @@
 
   const runProcess = async () => {
     const loader = document.createElement('div');
-    loader.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:30px 50px;background:linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);color:#fff;z-index:10000;border-radius:20px;text-align:center;font-size:18px;font-weight:600;line-height:1.6;box-shadow: 0 20px 50px rgba(0,0,0,0.4);font-family:"Pretendard",-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);';
-    loader.innerHTML = '데이터 수집 중...<br><br>몇초 걸려요~<br><br>까꿍ㅎ';
+    loader.style = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:28px 44px;background:rgba(17,17,17,0.92);color:#f5f5f5;z-index:10000;border-radius:16px;text-align:center;font-size:15px;font-weight:500;line-height:1.7;letter-spacing:-0.2px;box-shadow:0 18px 48px rgba(0,0,0,0.35);font-family:"Pretendard",-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(8px);';
+    loader.innerHTML = '<style>@keyframes shocoSpin{to{transform:rotate(360deg)}}</style>' +
+      '<div style="width:28px;height:28px;margin:0 auto 14px;border:3px solid rgba(255,255,255,0.12);border-top-color:#a3e635;border-radius:50%;animation:shocoSpin 0.8s linear infinite"></div>' +
+      '<div style="font-size:16px;font-weight:700;color:#fff">데이터 수집 중</div>' +
+      '<div style="color:#a3a3a3;font-size:13px">몇 초 걸려요~ <span style="color:#a3e635">까꿍ㅎ</span></div>';
     document.body.appendChild(loader);
 
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -206,9 +232,10 @@
     html += '</div><script>';
     html += 'function toggleItem(el) { const chk = el.querySelector(".chk-box"); if (event.target.type !== "checkbox") { chk.checked = !chk.checked; } el.classList.toggle("selected", chk.checked); updateCount(); }';
     html += 'function deselectAll() { document.querySelectorAll(".item-wrapper").forEach(el => { el.classList.remove("selected"); el.querySelector(".chk-box").checked = false; }); updateCount(); }';
-    const dlPrefix = ((document.querySelector('meta[property="og:title"]') || {}).content || document.title || '')
-      .replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_').slice(0, 40);
-    html += 'var DL_PREFIX = ' + JSON.stringify(dlPrefix ? dlPrefix + '_' : '').replace(/</g, '\\u003c') + ';';
+    const dlFolder = ((document.querySelector('meta[property="og:title"]') || {}).content || document.title || '')
+      .replace(/\s*[:|-]\s*(네이버|스마트스토어|브랜드스토어).*$/, '')
+      .replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 60) || '상품이미지';
+    html += 'var DL_FOLDER = ' + JSON.stringify(dlFolder).replace(/</g, '\\u003c') + ';';
     html += updateCount.toString() + selectAllImages.toString() + downloadSelected.toString();
     html += 'function exportSelected() { const selected = document.querySelectorAll(".item-wrapper.selected"); if (selected.length === 0) { alert("항목을 선택해주세요."); return; } const win = window.open(); let out = "<html><head><style>body{background:#000;margin:0;padding:10px;} .masonry{column-width:200px;column-gap:6px;} .box{break-inside:avoid;margin-bottom:6px;background:#111;border-radius:4px;overflow:hidden;} img,video{width:100%;} .txt{color:#ccc;padding:12px;font-size:12px;line-height:1.6;white-space:pre-wrap;}</style></head><body><div class=\'masonry\'>"; selected.forEach(el => { const img = el.querySelector("img"); const vid = el.querySelector("video"); const txt = el.querySelector(".text-content"); if(img) out += "<div class=\'box\'><img src=\'"+img.src+"\'></div>"; else if(vid) out += "<div class=\'box\'><video src=\'"+vid.src+"\' controls></video></div>"; else if(txt) out += "<div class=\'box\'><div class=\'txt\'>"+txt.innerText+"</div></div>"; }); out += "</div></body></html>"; win.document.write(out); win.document.close(); }';
     html += '<\/script></body></html>';
