@@ -74,17 +74,45 @@
     let seenMedia = new Set();
     let seenTexts = new Set();
 
-    const thumbItems = document.querySelectorAll('.K4l1t0ryUq ul li img, .mdFeBiFowv img.TgO1N1wWTm');
-    thumbItems.forEach(img => {
-      let src = img.getAttribute('data-src') || img.src;
-      if (src && src.startsWith('http')) {
-        let highRes = src.replace(/\?type=[^&]+/, '?type=m1000_pd');
-        if (src.includes('dthumb')) highRes = src;
-        if (!seenMedia.has(highRes)) {
-          rawData.push({ type: 'image', content: highRes, label: 'THUMB' });
-          seenMedia.add(highRes);
-        }
+    // ---- 대표(썸네일) 이미지 수집 ----
+    // 네이버가 갤러리 클래스명(.K4l1t0ryUq 등)을 바꾸면서 기존 선택자로는 대표 이미지를 못 찾게 됨.
+    // 대시보드(naver_download.py)와 같은 순서로 찾는다:
+    // ① 페이지 초기 데이터(__PRELOADED_STATE__)의 대표·추가 이미지 ② img[alt="대표이미지"]
+    // ③ 기존 갤러리 선택자 ④ og:image
+    const absUrl = (u) => { try { return u ? new URL(u, location.href).href : ''; } catch (e) { return ''; } };
+    const imgSrc = (el) => el.getAttribute('data-src') || el.getAttribute('data-lazy-src') || el.currentSrc || el.src;
+    const thumbUrls = [];
+    try {
+      const state = window.__PRELOADED_STATE__;
+      const product = state && (state.simpleProductForDetailPage || (state.product && state.product.A) || state.product);
+      const pushProduct = (v) => {
+        const u = absUrl(typeof v === 'string' ? v : (v && (v.originalUrl || v.url)) || '');
+        if (u) thumbUrls.push(u);
+      };
+      if (product) {
+        pushProduct(product.representativeImageUrl || product.representativeImage);
+        (product.optionalImageUrls || product.optionalImages || []).forEach(pushProduct);
       }
+    } catch (e) { /* 초기 데이터가 없는 페이지 */ }
+    if (thumbUrls.length === 0) {
+      document.querySelectorAll('img[alt="대표이미지"], .K4l1t0ryUq ul li img, .mdFeBiFowv img.TgO1N1wWTm').forEach(img => {
+        let src = absUrl(imgSrc(img));
+        if (src && !src.includes('dthumb')) src = src.replace(/([?&])type=[^&]+/, '$1type=m1000_pd');
+        if (src) thumbUrls.push(src);
+      });
+    }
+    if (thumbUrls.length === 0) {
+      const og = (document.querySelector('meta[property="og:image"]') || {}).content;
+      if (og) thumbUrls.push(absUrl(og));
+    }
+    const seenThumbKeys = new Set();
+    thumbUrls.forEach(u => {
+      if (!u.startsWith('http')) return;
+      const key = u.includes('pstatic.net') ? u.split('?')[0] : u;
+      if (seenThumbKeys.has(key) || seenMedia.has(u)) return;
+      seenThumbKeys.add(key);
+      seenMedia.add(u);
+      rawData.push({ type: 'image', content: u, label: 'THUMB' });
     });
 
     let expandButton = document.querySelector('#INTRODUCE button, [class*="Button_expand"], ._1_vAasS8Tq');
