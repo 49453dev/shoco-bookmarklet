@@ -33,8 +33,24 @@
       const isThumb = !!imgs[i].closest('.item-wrapper').querySelector('.thumb-tag');
       const base = DL_FOLDER + '_' + String(i + 1).padStart(3, '0') + (isThumb ? '_thumb' : '');
       try {
-        const res = await fetch(src, { credentials: 'omit' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        // 화면에 표시된 이미지는 브라우저 캐시에 'CORS 없는 응답'으로 저장돼 있어서,
+        // 같은 주소로 fetch하면 실패한다(일부 선택·대표 이미지 다운로드 실패 원인).
+        // 캐시를 피하는 꼬리표(_dl)를 붙여 새로 받고, 안 되면 원래 주소·크기 변환 주소로 재시도한다.
+        const sep = src.includes('?') ? '&' : '?';
+        const tries = [src + sep + '_dl=' + Date.now() + i, src];
+        if (src.includes('pstatic.net') && !/[?&]type=/.test(src)) tries.push(src + sep + 'type=m1000_pd&_dl=' + Date.now());
+        let res = null;
+        let lastErr = null;
+        for (const u of tries) {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 20000);
+          try {
+            const r = await fetch(u, { credentials: 'omit', cache: 'no-store', signal: ctrl.signal });
+            if (r.ok) { res = r; break; }
+            lastErr = new Error('HTTP ' + r.status);
+          } catch (err) { lastErr = err; } finally { clearTimeout(timer); }
+        }
+        if (!res) throw lastErr || new Error('fetch failed');
         const blob = await res.blob();
         let ext = (blob.type.split('/')[1] || 'jpg').split(';')[0].split('+')[0];
         if (ext === 'jpeg') ext = 'jpg';
@@ -108,6 +124,9 @@
     const seenThumbKeys = new Set();
     thumbUrls.forEach(u => {
       if (!u.startsWith('http')) return;
+      // 네이버 이미지 서버는 '?type=' 없는 원본 주소에 CORS 헤더를 주지 않아 다운로드(fetch)가 실패한다.
+      // 쿼리가 없으면 1000px 크기 변환 주소로 바꾼다.
+      if (u.includes('pstatic.net') && !/[?&]type=/.test(u)) u += (u.includes('?') ? '&' : '?') + 'type=m1000_pd';
       const key = u.includes('pstatic.net') ? u.split('?')[0] : u;
       if (seenThumbKeys.has(key) || seenMedia.has(u)) return;
       seenThumbKeys.add(key);
